@@ -1,12 +1,16 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, BaseFilter
 from telegram import ReplyKeyboardMarkup
 import requests
+class charFilter(BaseFilter):
+    def filter(self, message):
+        return len(message.text) == 1 and message.text in ['1','2','3','4']
 
 entry = {}
 keyboard = [['0', '1'], ['2', '3']]
-url = '<URL>'
-updater = Updater(token='<TOKEN>')
+url = '<url>'
+updater = Updater(token='<token>')
 dispatcher = updater.dispatcher
+charfilter = charFilter()
 
 
 def generate_problem(username):
@@ -50,7 +54,7 @@ def reply_and_new_prob(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text=generate_problem(username))
 
 
-dispatcher.add_handler(MessageHandler(Filters.text, reply_and_new_prob))
+dispatcher.add_handler(MessageHandler(charfilter, reply_and_new_prob))
 dispatcher.add_handler(CommandHandler('start', start))
 
 updater.start_polling()
