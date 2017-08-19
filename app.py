@@ -3,7 +3,7 @@ from telegram import ReplyKeyboardMarkup
 import requests
 class charFilter(BaseFilter):
     def filter(self, message):
-        return len(message.text) == 1 and message.text in ['1','2','3','4']
+        return len(message.text) == 1 and message.text in ['0','1','2','3']
 
 entry = {}
 keyboard = [['0', '1'], ['2', '3']]
