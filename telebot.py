@@ -3,19 +3,18 @@ from telegram import ReplyKeyboardMarkup
 import requests
 
 entry = {}
-username = ''
 keyboard = [['0', '1'], ['2', '3']]
 url = '<URL>'
 updater = Updater(token='<TOKEN>')
 dispatcher = updater.dispatcher
 
 
-def generate_problem():
+def generate_problem(username):
     global entry
-    entry = requests.get(url+'/question?user='+username).json()
-    prob = entry['question'] + '\n'
+    entry[username] = requests.get(url+'/question?user='+username).json()
+    prob = entry[username]['question'] + '\n'
     for i in range(4):
-        prob = prob + '(' + str(i) + ') ' + entry['option'][i] + '\n'
+        prob = prob + '(' + str(i) + ') ' + entry[username]['option'][i] + '\n'
     return prob
 
 
@@ -24,31 +23,31 @@ def reply_markup():
 
 
 def start(bot, update):
-    global username
     username = str(update.message.chat_id)
-    print(username)
-    requests.post(url+'/user', json={"user": username})
     hello = "Hello " + update.message.from_user.first_name + ", nice to meet you!"
-    bot.send_message(chat_id=update.message.chat_id, text=hello,
-                     reply_markup=reply_markup())
-    bot.send_message(chat_id=update.message.chat_id, text=generate_problem())
+
+    requests.post(url+'/user', json={"user": username})
+    bot.send_message(chat_id=update.message.chat_id, text=hello, reply_markup=reply_markup())
+    bot.send_message(chat_id=update.message.chat_id, text=generate_problem(username))
 
 
 def reply(ok):
     if ok:
-        return "yes"
+        return "すごーい!"
     else:
-        return "no"
+        return "是不會查 stackoverflow 嗎？ㄏㄏ"
 
 
 def reply_and_new_prob(bot, update):
+    username = str(update.message.chat_id)
     res = update.message.text
-    op = entry['option']
-    id = entry['id']
-    bot.send_message(chat_id=update.message.chat_id, text=op[int(res)])
+    op = entry[username]['option']
+    id = entry[username]['id']
+
     result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': int(res)}).json()
+    bot.send_message(chat_id=update.message.chat_id, text=op[int(res)])
     bot.send_message(chat_id=update.message.chat_id, text=reply(result))
-    bot.send_message(chat_id=update.message.chat_id, text=generate_problem())
+    bot.send_message(chat_id=update.message.chat_id, text=generate_problem(username))
 
 
 dispatcher.add_handler(MessageHandler(Filters.text, reply_and_new_prob))
