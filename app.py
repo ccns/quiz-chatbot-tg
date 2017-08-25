@@ -1,7 +1,7 @@
 from telegram.ext import Updater, CommandHandler, MessageHandler, BaseFilter
 from telegram import ReplyKeyboardMarkup
 import requests
-from reply import Reply, judge
+from reply import Reply, Judge
 
 
 class charFilter(BaseFilter):
@@ -16,41 +16,52 @@ dispatcher = updater.dispatcher
 charfilter = charFilter()
 
 
-def reply_markup():
+def Reply_markup():
     return ReplyKeyboardMarkup(keyboard)
 
 
-def generate_problem(username):
+def Generate_problem(username):
     global entry
     entry[username] = requests.get(url+'/question?user='+username).json()
-    prob = entry[username]['question'] + '\n'
-    for i in range(4):
-        prob = prob + '(' + str(i) + ') ' + entry[username]['option'][i] + '\n'
+    prob = entry[username]['question']
+    op = entry[username]['option']
+
+    for i in range(len(op)):
+        prob = prob + '\n(' + str(i) + ') ' + op[i]
     return prob
 
 
-def start(bot, update):
+def Start(bot, update):
     username = str(update.message.chat_id)
 
     requests.post(url+'/user', json={"user": username})
-    bot.send_message(chat_id=update.message.chat_id, text=Reply('welcome'), reply_markup=reply_markup())
-    bot.send_message(chat_id=update.message.chat_id, text=generate_problem(username))
+    bot.send_message(chat_id=update.message.chat_id, text=Reply('welcome'), reply_markup=Reply_markup())
+    bot.send_message(chat_id=update.message.chat_id, text=Generate_problem(username))
 
 
-def receive_and_reply(bot, update):
+def Receive_and_reply(bot, update):
     username = str(update.message.chat_id)
-    res = update.message.text
+    rcv = update.message.text
     op = entry[username]['option']
     id = entry[username]['id']
 
-    result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': int(res)}).json()
-    bot.send_message(chat_id=update.message.chat_id, text=op[int(res)])
-    bot.send_message(chat_id=update.message.chat_id, text=judge(result))
-    bot.send_message(chat_id=update.message.chat_id, text=generate_problem(username))
+    result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': int(rcv)}).json()
+    bot.send_message(chat_id=update.message.chat_id, text=op[int(rcv)])
+    bot.send_message(chat_id=update.message.chat_id, text=Judge(result))
+    bot.send_message(chat_id=update.message.chat_id, text=Generate_problem(username))
 
 
-dispatcher.add_handler(MessageHandler(charfilter, receive_and_reply))
-dispatcher.add_handler(CommandHandler('start', start))
+def Status(bot, update):
+    username = str(update.message.chat_id)
+    stat = requests.get(url+'/user?user='+username).json()
+    reply = 'Score: ' + str(stat['point']) + '\nRank: ' + str(stat['order']) + '\nRemainders: ' + str(stat['questionStatus'].count(0))
+
+    bot.send_message(chat_id=update.message.chat_id, text=reply)
+
+
+dispatcher.add_handler(MessageHandler(charfilter, Receive_and_reply))
+dispatcher.add_handler(CommandHandler('start', Start))
+dispatcher.add_handler(CommandHandler('status', Status))
 
 updater.start_polling()
 updater.idle()
