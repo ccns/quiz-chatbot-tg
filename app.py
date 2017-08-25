@@ -25,14 +25,14 @@ def Generate_problem(username):
     entry[username] = requests.get(url+'/question?user='+username).json()
     prob = entry[username]['question']
     op = entry[username]['option']
-
     for i in range(len(op)):
         prob = prob + '\n(' + str(i) + ') ' + op[i]
+
     return prob
 
 
 def Start(bot, update):
-    username = str(update.message.chat_id)
+    username = update.message.from_user.username
 
     requests.post(url+'/user', json={"user": username})
     bot.send_message(chat_id=update.message.chat_id, text=Reply('welcome'), reply_markup=Reply_markup())
@@ -40,7 +40,7 @@ def Start(bot, update):
 
 
 def Receive_and_reply(bot, update):
-    username = str(update.message.chat_id)
+    username = update.message.from_user.username
     rcv = update.message.text
     op = entry[username]['option']
     id = entry[username]['id']
@@ -52,9 +52,18 @@ def Receive_and_reply(bot, update):
 
 
 def Status(bot, update):
-    username = str(update.message.chat_id)
+    username = update.message.from_user.username
     stat = requests.get(url+'/user?user='+username).json()
     reply = 'Score: ' + str(stat['point']) + '\nRank: ' + str(stat['order']) + '\nRemainders: ' + str(stat['questionStatus'].count(0))
+
+    bot.send_message(chat_id=update.message.chat_id, text=reply)
+
+
+def Statistic(bot, update):
+    stat = requests.get(url+'/user-database.json').json()
+    reply = 'Total players: ' + str(len(stat))
+    for name in stat:
+        reply = reply + '\nplayer ' + name + ', score: ' + str(stat[name]['point'])
 
     bot.send_message(chat_id=update.message.chat_id, text=reply)
 
@@ -62,6 +71,7 @@ def Status(bot, update):
 dispatcher.add_handler(MessageHandler(charfilter, Receive_and_reply))
 dispatcher.add_handler(CommandHandler('start', Start))
 dispatcher.add_handler(CommandHandler('status', Status))
+dispatcher.add_handler(CommandHandler('statistic', Statistic))
 
 updater.start_polling()
 updater.idle()
