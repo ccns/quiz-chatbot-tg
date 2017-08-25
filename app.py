@@ -68,10 +68,16 @@ def Statistic(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text=reply)
 
 
+def Feedback(bot, update):
+    reply = 'Submit a new issue:\nhttps://github.com/ccns/quiz-chatbot-tg/issues\nor contact us:\nhttps://www.facebook.com/ncku.ccns'
+    bot.send_message(chat_id=update.message.chat_id, text=reply)
+
+
 dispatcher.add_handler(MessageHandler(charfilter, Receive_and_reply))
 dispatcher.add_handler(CommandHandler('start', Start))
 dispatcher.add_handler(CommandHandler('status', Status))
 dispatcher.add_handler(CommandHandler('statistic', Statistic))
+dispatcher.add_handler(CommandHandler('feedback', Feedback))
 
 updater.start_polling()
 updater.idle()
