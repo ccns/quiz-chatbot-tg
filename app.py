@@ -1,9 +1,12 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, BaseFilter
+from telegram.ext import Updater, CommandHandler, MessageHandler, BaseFilter
 from telegram import ReplyKeyboardMarkup
 import requests
+from reply import Reply, judge
+
+
 class charFilter(BaseFilter):
     def filter(self, message):
-        return len(message.text) == 1 and message.text in ['0','1','2','3']
+        return len(message.text) == 1 and message.text in ['0', '1', '2', '3']
 
 entry = {}
 keyboard = [['0', '1'], ['2', '3']]
@@ -11,6 +14,10 @@ url = '<url>'
 updater = Updater(token='<token>')
 dispatcher = updater.dispatcher
 charfilter = charFilter()
+
+
+def reply_markup():
+    return ReplyKeyboardMarkup(keyboard)
 
 
 def generate_problem(username):
@@ -22,27 +29,15 @@ def generate_problem(username):
     return prob
 
 
-def reply_markup():
-    return ReplyKeyboardMarkup(keyboard)
-
-
 def start(bot, update):
     username = str(update.message.chat_id)
-    hello = "Hello " + update.message.from_user.first_name + ", nice to meet you!"
 
     requests.post(url+'/user', json={"user": username})
-    bot.send_message(chat_id=update.message.chat_id, text=hello, reply_markup=reply_markup())
+    bot.send_message(chat_id=update.message.chat_id, text=Reply('welcome'), reply_markup=reply_markup())
     bot.send_message(chat_id=update.message.chat_id, text=generate_problem(username))
 
 
-def reply(ok):
-    if ok:
-        return "すごーい!"
-    else:
-        return "是不會查 stackoverflow 嗎？ㄏㄏ"
-
-
-def reply_and_new_prob(bot, update):
+def receive_and_reply(bot, update):
     username = str(update.message.chat_id)
     res = update.message.text
     op = entry[username]['option']
@@ -50,11 +45,11 @@ def reply_and_new_prob(bot, update):
 
     result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': int(res)}).json()
     bot.send_message(chat_id=update.message.chat_id, text=op[int(res)])
-    bot.send_message(chat_id=update.message.chat_id, text=reply(result))
+    bot.send_message(chat_id=update.message.chat_id, text=judge(result))
     bot.send_message(chat_id=update.message.chat_id, text=generate_problem(username))
 
 
-dispatcher.add_handler(MessageHandler(charfilter, reply_and_new_prob))
+dispatcher.add_handler(MessageHandler(charfilter, receive_and_reply))
 dispatcher.add_handler(CommandHandler('start', start))
 
 updater.start_polling()

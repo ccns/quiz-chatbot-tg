@@ -1,0 +1,26 @@
+{
+	"welcome": [
+		"ようこそジャパリパークへ",
+		"Welcome to the japari park",
+		"Hello, world!"
+	],
+	"correct": [
+		"すごーい!",
+	], 
+	"incorrect": [
+		"這題不會只能去寫 COBOL 了",
+		"連 PHP 工程師都答的比你好",
+		"是不會查 stackoverflow 嗎？",
+		"STFW, OK?"
+	],
+	"finish": [
+	],
+	"allpass": [
+		"看來你很閒呢, 那就加入CCNS吧(?",
+		"你贏惹 ob'_'ov",
+		"不如來跟我們一起出題?"
+	],
+	"allwrong": [
+		"每一題都答錯，你也不簡單啊…"
+	]
+}
