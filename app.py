@@ -1,5 +1,7 @@
+# app.py
 from telegram.ext import Updater, CommandHandler, MessageHandler, BaseFilter
 from telegram import ReplyKeyboardMarkup
+from random import randrange
 import requests
 from reply import Reply, Judge
 
@@ -9,6 +11,7 @@ class charFilter(BaseFilter):
         return len(message.text) == 1 and message.text in ['A', 'B', 'C', 'D']
 
 entry = {}
+option_mapping = {}
 keyboard = [['A', 'B'], ['C', 'D']]
 url = '<url>'
 updater = Updater(token='<token>')
@@ -20,15 +23,26 @@ def Reply_markup():
     return ReplyKeyboardMarkup(keyboard)
 
 
+def Randomize_option(username):
+    global option_mapping
+    om = option_mapping[username] = []
+    op = entry[username]['option']
+    while(len(om) != len(op)):
+        num = randrange(len(op))
+        if num not in om: om.append(num)
+
+
 def Generate_problem(username):
     global entry
     entry[username] = requests.get(url+'/question?user='+username).json()
-    prob = entry[username]['question']
+    Randomize_option(username)
+    pb = entry[username]['question']
     op = entry[username]['option']
+    om = option_mapping[username]
     for i in range(len(op)):
-        prob = prob + '\n(' + chr(ord('A')+i) + ') ' + op[i]
+        pb = pb + '\n(' + chr(ord('A')+i) + ') ' + op[om[i]]
 
-    return prob
+    return pb
 
 
 def Start(bot, update):
@@ -42,11 +56,12 @@ def Start(bot, update):
 def Receive_and_reply(bot, update):
     username = update.message.from_user.username
     rcv = update.message.text
-    op = entry[username]['option']
     id = entry[username]['id']
+    op = entry[username]['option']
+    om = option_mapping[username]
 
-    result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': ord(rcv)-ord('A')}).json()
-    bot.send_message(chat_id=update.message.chat_id, text=op[ord(rcv)-ord('A')])
+    result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': om[ord(rcv)-ord('A')]}).json()
+    bot.send_message(chat_id=update.message.chat_id, text=op[om[ord(rcv)-ord('A')]])
     bot.send_message(chat_id=update.message.chat_id, text=Judge(result))
     bot.send_message(chat_id=update.message.chat_id, text=Generate_problem(username))
 
