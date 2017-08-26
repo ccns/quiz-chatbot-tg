@@ -6,10 +6,10 @@ from reply import Reply, Judge
 
 class charFilter(BaseFilter):
     def filter(self, message):
-        return len(message.text) == 1 and message.text in ['0', '1', '2', '3']
+        return len(message.text) == 1 and message.text in ['A', 'B', 'C', 'D']
 
 entry = {}
-keyboard = [['0', '1'], ['2', '3']]
+keyboard = [['A', 'B'], ['C', 'D']]
 url = '<url>'
 updater = Updater(token='<token>')
 dispatcher = updater.dispatcher
@@ -26,7 +26,7 @@ def Generate_problem(username):
     prob = entry[username]['question']
     op = entry[username]['option']
     for i in range(len(op)):
-        prob = prob + '\n(' + str(i) + ') ' + op[i]
+        prob = prob + '\n(' + chr(ord('A')+i) + ') ' + op[i]
 
     return prob
 
@@ -45,8 +45,8 @@ def Receive_and_reply(bot, update):
     op = entry[username]['option']
     id = entry[username]['id']
 
-    result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': int(rcv)}).json()
-    bot.send_message(chat_id=update.message.chat_id, text=op[int(rcv)])
+    result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': ord(rcv)-ord('A')}).json()
+    bot.send_message(chat_id=update.message.chat_id, text=op[ord(rcv)-ord('A')])
     bot.send_message(chat_id=update.message.chat_id, text=Judge(result))
     bot.send_message(chat_id=update.message.chat_id, text=Generate_problem(username))
 
