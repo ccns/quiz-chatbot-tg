@@ -10,12 +10,10 @@ class charFilter(BaseFilter):
     def filter(self, message):
         return len(message.text) == 1 and message.text in ['A', 'B', 'C', 'D']
 
+url = ""
 entry = {}
 option_mapping = {}
 keyboard = [['A', 'B'], ['C', 'D']]
-url = '<url>'
-updater = Updater(token='<token>')
-dispatcher = updater.dispatcher
 charfilter = charFilter()
 
 
@@ -88,11 +86,21 @@ def Feedback(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text=reply)
 
 
-dispatcher.add_handler(MessageHandler(charfilter, Receive_and_reply))
-dispatcher.add_handler(CommandHandler('start', Start))
-dispatcher.add_handler(CommandHandler('status', Status))
-dispatcher.add_handler(CommandHandler('statistic', Statistic))
-dispatcher.add_handler(CommandHandler('feedback', Feedback))
+def main():
+    global url
+    url = '<url>'
+    updater = Updater(token='<token>')
+    dispatcher = updater.dispatcher
 
-updater.start_polling()
-updater.idle()
+    dispatcher.add_handler(MessageHandler(charfilter, Receive_and_reply))
+    dispatcher.add_handler(CommandHandler('start', Start))
+    dispatcher.add_handler(CommandHandler('status', Status))
+    dispatcher.add_handler(CommandHandler('statistic', Statistic))
+    dispatcher.add_handler(CommandHandler('feedback', Feedback))
+
+    updater.start_polling()
+    updater.idle()
+
+
+if __name__ == '__main__':
+    main()
