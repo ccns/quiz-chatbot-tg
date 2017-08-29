@@ -13,12 +13,11 @@ class charFilter(BaseFilter):
 url = ""
 entry = {}
 option_mapping = {}
-keyboard = [['A', 'B'], ['C', 'D']]
 charfilter = charFilter()
 
 
 def Reply_markup():
-    return ReplyKeyboardMarkup(keyboard)
+    return ReplyKeyboardMarkup(keyboard=[['A', 'B'], ['C', 'D']], resize_keyboard=True)
 
 
 def Randomize_option(username):
