@@ -10,11 +10,13 @@ entry = {}
 option_mapping = {}
 
 
-def Reply_markup():
+def Reply_markup(have_hint):
     keyboard = [[InlineKeyboardButton("A", callback_data='0'),
-                 InlineKeyboardButton("B", callback_data='1')],
-                [InlineKeyboardButton("C", callback_data='2'),
+                 InlineKeyboardButton("B", callback_data='1'),
+                 InlineKeyboardButton("C", callback_data='2'),
                  InlineKeyboardButton("D", callback_data='3')]]
+    if have_hint: keyboard.append([InlineKeyboardButton("Hint", callback_data='hint')])
+
     return InlineKeyboardMarkup(keyboard)
 
 
@@ -31,13 +33,12 @@ def Generate_problem(username):
     global entry
     entry[username] = requests.get(url+'/question?user='+username).json()
     Randomize_option(username)
-    pb = entry[username]['question']
     op = entry[username]['option']
     om = option_mapping[username]
     for i in range(len(op)):
-        pb = pb + '\n(' + chr(ord('A')+i) + ') ' + op[om[i]]
+        entry[username]['question'] += '\n(' + chr(ord('A')+i) + ') ' + op[om[i]]
 
-    return pb
+    return entry[username]['question']
 
 
 def Start(bot, update):
@@ -45,20 +46,31 @@ def Start(bot, update):
 
     requests.post(url+'/user', json={"user": username})
     bot.send_message(chat_id=update.message.chat_id, text=Reply('welcome'))
-    bot.send_message(chat_id=update.message.chat_id, text=Generate_problem(username), reply_markup=Reply_markup())
+    bot.send_message(chat_id=update.message.chat_id, text=Generate_problem(username),
+                     reply_markup=Reply_markup(have_hint=(entry[username]['hint'] != '')))
 
 
 def Receive_and_reply(bot, update):
     rcv = update.callback_query
     username = rcv.message.chat.username
-    id = entry[username]['id']
-    op = entry[username]['option']
-    om = option_mapping[username]
+    chat_id = rcv.message.chat_id
 
-    result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': om[int(rcv.data)]}).json()
-    bot.send_message(chat_id=rcv.message.chat.id, text=op[om[int(rcv.data)]])
-    bot.send_message(chat_id=rcv.message.chat.id, text=Judge(result))
-    bot.send_message(chat_id=rcv.message.chat.id, text=Generate_problem(username), reply_markup=Reply_markup())
+    if rcv.data == 'hint':
+        message_id = rcv.message.message_id
+        reply = entry[username]['question'] + '\nhint: ' + entry[username]['hint']
+
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=reply,
+                              reply_markup=Reply_markup(have_hint=False))
+    else:
+        id = entry[username]['id']
+        op = entry[username]['option']
+        om = option_mapping[username]
+
+        result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': om[int(rcv.data)]}).json()
+        bot.send_message(chat_id=chat_id, text=op[om[int(rcv.data)]])
+        bot.send_message(chat_id=chat_id, text=Judge(result))
+        bot.send_message(chat_id=chat_id, text=Generate_problem(username),
+                         reply_markup=Reply_markup(have_hint=(entry[username]['hint'] != '')))
 
 
 def Status(bot, update):
@@ -73,7 +85,7 @@ def Statistic(bot, update):
     stat = requests.get(url+'/user-database.json').json()
     reply = 'Total players: ' + str(len(stat))
     for name in stat:
-        reply = reply + '\n' + name + ', score: ' + str(stat[name]['point'])
+        reply += '\n' + name + ', score: ' + str(stat[name]['point'])
 
     bot.send_message(chat_id=update.message.chat_id, text=reply)
 
