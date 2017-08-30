@@ -1,23 +1,21 @@
 # app.py
-from telegram.ext import Updater, CommandHandler, MessageHandler, BaseFilter
-from telegram import ReplyKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from random import randrange
 import requests
 from reply import Reply, Judge
 
-
-class charFilter(BaseFilter):
-    def filter(self, message):
-        return len(message.text) == 1 and message.text in ['A', 'B', 'C', 'D']
-
 url = ""
 entry = {}
 option_mapping = {}
-charfilter = charFilter()
 
 
 def Reply_markup():
-    return ReplyKeyboardMarkup(keyboard=[['A', 'B'], ['C', 'D']], resize_keyboard=True)
+    keyboard = [[InlineKeyboardButton("A", callback_data='0'),
+                 InlineKeyboardButton("B", callback_data='1')],
+                [InlineKeyboardButton("C", callback_data='2'),
+                 InlineKeyboardButton("D", callback_data='3')]]
+    return InlineKeyboardMarkup(keyboard)
 
 
 def Randomize_option(username):
@@ -46,21 +44,21 @@ def Start(bot, update):
     username = update.message.from_user.username
 
     requests.post(url+'/user', json={"user": username})
-    bot.send_message(chat_id=update.message.chat_id, text=Reply('welcome'), reply_markup=Reply_markup())
-    bot.send_message(chat_id=update.message.chat_id, text=Generate_problem(username))
+    bot.send_message(chat_id=update.message.chat_id, text=Reply('welcome'))
+    bot.send_message(chat_id=update.message.chat_id, text=Generate_problem(username), reply_markup=Reply_markup())
 
 
 def Receive_and_reply(bot, update):
-    username = update.message.from_user.username
-    rcv = update.message.text
+    rcv = update.callback_query
+    username = rcv.message.chat.username
     id = entry[username]['id']
     op = entry[username]['option']
     om = option_mapping[username]
 
-    result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': om[ord(rcv)-ord('A')]}).json()
-    bot.send_message(chat_id=update.message.chat_id, text=op[om[ord(rcv)-ord('A')]])
-    bot.send_message(chat_id=update.message.chat_id, text=Judge(result))
-    bot.send_message(chat_id=update.message.chat_id, text=Generate_problem(username))
+    result = requests.post(url+'/answer', json={'user': username, 'id': id, 'answer': om[int(rcv.data)]}).json()
+    bot.send_message(chat_id=rcv.message.chat.id, text=op[om[int(rcv.data)]])
+    bot.send_message(chat_id=rcv.message.chat.id, text=Judge(result))
+    bot.send_message(chat_id=rcv.message.chat.id, text=Generate_problem(username), reply_markup=Reply_markup())
 
 
 def Status(bot, update):
@@ -75,7 +73,7 @@ def Statistic(bot, update):
     stat = requests.get(url+'/user-database.json').json()
     reply = 'Total players: ' + str(len(stat))
     for name in stat:
-        reply = reply + '\nplayer ' + name + ', score: ' + str(stat[name]['point'])
+        reply = reply + '\n' + name + ', score: ' + str(stat[name]['point'])
 
     bot.send_message(chat_id=update.message.chat_id, text=reply)
 
@@ -91,7 +89,7 @@ def main():
     updater = Updater(token='<token>')
     dispatcher = updater.dispatcher
 
-    dispatcher.add_handler(MessageHandler(charfilter, Receive_and_reply))
+    dispatcher.add_handler(CallbackQueryHandler(Receive_and_reply))
     dispatcher.add_handler(CommandHandler('start', Start))
     dispatcher.add_handler(CommandHandler('status', Status))
     dispatcher.add_handler(CommandHandler('statistic', Statistic))
