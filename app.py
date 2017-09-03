@@ -54,15 +54,17 @@ def Start(bot, update):
 def Receive_and_reply(bot, update):
     rcv = update.callback_query
     chat_id = rcv.message.chat_id
+    message_id = rcv.message.message_id
     uid = str(chat_id)
 
     if rcv.data == 'hint':
-        message_id = rcv.message.message_id
         reply = entity[uid]['question'] + '\nhint: ' + entity[uid]['hint']
 
         bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=reply,
                               reply_markup=Reply_markup(have_hint=False))
     else:
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=entity[uid]['question'])
+
         id = entity[uid]['id']
         op = entity[uid]['option']
         om = option_mapping[uid]
