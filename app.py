@@ -1,13 +1,9 @@
 # app.py
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from random import randrange
+from random import shuffle
 import requests
 from reply import Reply, Judge
-
-url = ''
-entity = {}
-option_mapping = {}
 
 
 def Reply_markup(have_hint):
@@ -15,18 +11,16 @@ def Reply_markup(have_hint):
                  InlineKeyboardButton('B', callback_data='1'),
                  InlineKeyboardButton('C', callback_data='2'),
                  InlineKeyboardButton('D', callback_data='3')]]
-    if have_hint: keyboard.append([InlineKeyboardButton('Hint', callback_data='hint')])
+    if have_hint:
+        keyboard.append([InlineKeyboardButton('Hint', callback_data='hint')])
 
     return InlineKeyboardMarkup(keyboard)
 
 
 def Randomize_option(uid):
     global option_mapping
-    om = option_mapping[uid] = []
-    op = entity[uid]['option']
-    while(len(om) != len(op)):
-        num = randrange(len(op))
-        if num not in om: om.append(num)
+    option_mapping[uid] = [0, 1, 2, 3]
+    shuffle(option_mapping[uid])
 
 
 def Generate_problem(uid):
@@ -44,6 +38,7 @@ def Generate_problem(uid):
 def Finish(uid):
     stat = requests.get(url+'/user?user='+uid).json()
     total = len(stat['questionStatus'])
+
     if stat['questionStatus'].count(2) == total:
         return Reply('allpass')
     elif stat['questionStatus'].count(1) == total:
@@ -69,7 +64,7 @@ def Receive_and_reply(bot, update):
     message_id = rcv.message.message_id
 
     if rcv.data == 'hint':
-        reply = entity[uid]['question'] + '\nhint: ' + entity[uid]['hint']
+        reply = entity[uid]['question'] + '\nHint:\n' + entity[uid]['hint']
 
         bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=reply,
                               reply_markup=Reply_markup(have_hint=False))
@@ -88,7 +83,6 @@ def Receive_and_reply(bot, update):
 
         bot.send_message(chat_id=chat_id, text=Generate_problem(uid),
                          reply_markup=Reply_markup(have_hint=(entity[uid]['hint'] != '')))
-
 
 
 def Status(bot, update):
@@ -116,7 +110,11 @@ def Feedback(bot, update):
 
 
 def main():
-    global url
+    global entity, option_mapping, url
+
+    entity = {}
+    option_mapping = {}
+
     url = '<url>'
     updater = Updater(token='<token>')
     dispatcher = updater.dispatcher
