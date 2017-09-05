@@ -95,7 +95,12 @@ def Status(bot, update):
     chat_id = update.message.chat_id
     uid = str(chat_id)
     stat = requests.get(url+'/user?user='+uid).json()
-    reply = 'Score: ' + str(stat['point']) + '\nRank: ' + str(stat['order']) + '\nRemainders: ' + str(stat['questionStatus'].count(0))
+    remainders = stat['questionStatus'].count(0)
+    reply = 'Score: ' + str(stat['point']) + '\nRank: ' + str(stat['order'])
+    if remainders > 0:
+        reply += '\nRemainders: ' + str(remainders)
+    else:
+        reply += '\nGame Completed!'
 
     bot.send_message(chat_id=chat_id, text=reply)
 
