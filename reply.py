@@ -10,4 +10,4 @@ def Reply(condition):
 
 
 def Judge(bool):
-    return ('👍 ' + Reply('correct')) if bool else ('👎 ' + Reply('incorrect'))
+    return Reply('correct') if bool else Reply('incorrect')
