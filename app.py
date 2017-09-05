@@ -5,17 +5,17 @@ from random import randrange
 import requests
 from reply import Reply, Judge
 
-url = ""
+url = ''
 entity = {}
 option_mapping = {}
 
 
 def Reply_markup(have_hint):
-    keyboard = [[InlineKeyboardButton("A", callback_data='0'),
-                 InlineKeyboardButton("B", callback_data='1'),
-                 InlineKeyboardButton("C", callback_data='2'),
-                 InlineKeyboardButton("D", callback_data='3')]]
-    if have_hint: keyboard.append([InlineKeyboardButton("Hint", callback_data='hint')])
+    keyboard = [[InlineKeyboardButton('A', callback_data='0'),
+                 InlineKeyboardButton('B', callback_data='1'),
+                 InlineKeyboardButton('C', callback_data='2'),
+                 InlineKeyboardButton('D', callback_data='3')]]
+    if have_hint: keyboard.append([InlineKeyboardButton('Hint', callback_data='hint')])
 
     return InlineKeyboardMarkup(keyboard)
 
@@ -41,11 +41,22 @@ def Generate_problem(uid):
     return entity[uid]['question']
 
 
+def Finish(uid):
+    stat = requests.get(url+'/user?user='+uid).json()
+    total = len(stat['questionStatus'])
+    if stat['questionStatus'].count(2) == total:
+        return Reply('allpass')
+    elif stat['questionStatus'].count(1) == total:
+        return Reply('allwrong')
+
+    return Reply('finish')
+
+
 def Start(bot, update):
     chat_id = update.message.chat_id
     uid = str(chat_id)
 
-    requests.post(url+'/user', json={"user": uid, "nickname": update.message.from_user.first_name})
+    requests.post(url+'/user', json={'user': uid, 'nickname': update.message.from_user.first_name, 'platform': 'telegram'})
     bot.send_message(chat_id=chat_id, text=Reply('welcome'))
     bot.send_message(chat_id=chat_id, text=Generate_problem(uid),
                      reply_markup=Reply_markup(have_hint=(entity[uid]['hint'] != '')))
@@ -54,8 +65,8 @@ def Start(bot, update):
 def Receive_and_reply(bot, update):
     rcv = update.callback_query
     chat_id = rcv.message.chat_id
-    message_id = rcv.message.message_id
     uid = str(chat_id)
+    message_id = rcv.message.message_id
 
     if rcv.data == 'hint':
         reply = entity[uid]['question'] + '\nhint: ' + entity[uid]['hint']
@@ -72,8 +83,12 @@ def Receive_and_reply(bot, update):
         result = requests.post(url+'/answer', json={'user': uid, 'id': id, 'answer': om[int(rcv.data)]}).json()
         bot.send_message(chat_id=chat_id, text=op[om[int(rcv.data)]])
         bot.send_message(chat_id=chat_id, text=Judge(result))
+        if id == 'finish':
+            bot.send_message(chat_id=chat_id, text=Finish(uid))
+
         bot.send_message(chat_id=chat_id, text=Generate_problem(uid),
                          reply_markup=Reply_markup(have_hint=(entity[uid]['hint'] != '')))
+
 
 
 def Status(bot, update):
