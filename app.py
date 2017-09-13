@@ -1,4 +1,4 @@
-# app.py
+#!/usr/bin/env python3
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from random import shuffle
@@ -48,12 +48,17 @@ def Finish(uid):
 
 
 def Start(bot, update):
+    global entity, last_msg
     chat_id = update.message.chat_id
     uid = str(chat_id)
 
+    if uid in last_msg:
+        print('Clear board')
+        bot.edit_message_text(chat_id=chat_id, message_id=last_msg[uid].message_id, text=entity[uid]['question'])
+
     requests.post(url+'/user', json={'user': uid, 'nickname': update.message.from_user.first_name, 'platform': 'telegram'})
     bot.send_message(chat_id=chat_id, text=Reply('welcome'))
-    bot.send_message(chat_id=chat_id, text=Generate_problem(uid),
+    last_msg[uid] = bot.send_message(chat_id=chat_id, text=Generate_problem(uid),
                      reply_markup=Reply_markup(have_hint=(entity[uid]['hint'] != '')))
 
 
@@ -81,7 +86,7 @@ def Receive_and_reply(bot, update):
         if id == 'finish':
             bot.send_message(chat_id=chat_id, text=Finish(uid))
 
-        bot.send_message(chat_id=chat_id, text=Generate_problem(uid),
+        last_msg[uid] = bot.send_message(chat_id=chat_id, text=Generate_problem(uid),
                          reply_markup=Reply_markup(have_hint=(entity[uid]['hint'] != '')))
 
 
@@ -110,9 +115,10 @@ def Feedback(bot, update):
 
 
 def main():
-    global entity, option_mapping, url
+    global entity, option_mapping, url, last_msg
 
     entity = {}
+    last_msg = {}
     option_mapping = {}
 
     url = '<url>'
