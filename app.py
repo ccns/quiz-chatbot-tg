@@ -86,7 +86,7 @@ def Receive_and_reply(bot, update):
         result = requests.post(url+'/answer', json={'user': uid, 'id': entity[uid]['id'], 'answer': om[int(rcv.data)]}).json()
         bot.send_message(chat_id=chat_id, text=entity[uid]['option'][om[int(rcv.data)]])
         bot.send_message(chat_id=chat_id, text=Judge(result))
-        if id == 'finish': bot.send_message(chat_id=chat_id, text=Finish(uid))
+        if entity[uid]['id'] == 'finish': bot.send_message(chat_id=chat_id, text=Finish(uid))
         Send_new_problem(bot, chat_id, uid)
 
 
