@@ -1,139 +1,143 @@
 #!/usr/bin/env python3
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from random import shuffle
-import requests
-from reply import Reply, Judge
+from telegram.ext.dispatcher import run_async
+from reply import ReplyMsg, JudgeMsg, ProbMarkup
+from botclass import User
+import telegram
+import logging
+import configparser
 
+config = configparser.ConfigParser()
+config.read('.config')
+TOKEN = config['Bot']['Token']
 
-def Reply_markup(have_hint):
-    keyboard = [[InlineKeyboardButton('A', callback_data='0'),
-                 InlineKeyboardButton('B', callback_data='1'),
-                 InlineKeyboardButton('C', callback_data='2'),
-                 InlineKeyboardButton('D', callback_data='3')]]
-    if have_hint:
-        keyboard.append([InlineKeyboardButton('Hint', callback_data='hint')])
+request = telegram.utils.request.Request(con_pool_size=20)
+bot = telegram.Bot(token=TOKEN, request=request)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
+entity = {}
 
-    return InlineKeyboardMarkup(keyboard)
-
-
-def Randomize_option(uid):
-    global option_mapping
-    option_mapping[uid] = [0, 1, 2, 3]
-    shuffle(option_mapping[uid])
-
-
-def Send_new_problem(bot, chat_id, uid):
+def send_new_problem(chat_id):
     global entity
-    entity[uid] = requests.get(url+'/question?user='+uid).json()
-    Randomize_option(uid)
-    op = entity[uid]['option']
 
-    entity[uid]['question'] = '[' + entity[uid]['category'] + ']\n' + entity[uid]['question']
-    for i in range(len(op)):
-        entity[uid]['question'] += '\n(' + chr(ord('A')+i) + ') ' + op[option_mapping[uid][i]]
+    uid = str(chat_id)
+    prob = entity[uid].get_problem()
 
-    entity[uid]['msg'] = bot.send_message(chat_id=chat_id, text=entity[uid]['question'],
-                                          reply_markup=Reply_markup(have_hint=(entity[uid]['hint'] != '')))
+    if prob:
+        bot.send_message(
+            chat_id=chat_id,
+            text=prob.text(),
+            parse_mode='HTML',
+            reply_markup=ProbMarkup(hint=prob.hint)
+        )
+    else:
+        entity[uid].finished = True
+        bot.send_message(chat_id=chat_id, text=ReplyMsg('finish'))
 
-
-def Finish(uid):
-    stat = requests.get(url+'/user?user='+uid).json()
-    total = len(stat['questionStatus'])
-
-    if stat['questionStatus'].count(2) == total:
-        return Reply('allpass')
-    elif stat['questionStatus'].count(1) == total:
-        return Reply('allwrong')
-
-    return Reply('finish')
-
-
-def Start(bot, update):
-    global entity
+@run_async
+def start_handler(update, context):
     chat_id = update.message.chat_id
     uid = str(chat_id)
 
-    if uid in entity:
-        bot.edit_message_text(chat_id=chat_id, message_id=entity[uid]['msg'].message_id, text=entity[uid]['question'])
-
-    status = requests.post(url+'/user', json={
+    print({
         'user': uid,
         'nickname': update.message.from_user.first_name,
-        'platform': 'telegram'
-    }).status_code
+    })
 
-    if status == 200:
-        bot.send_message(chat_id=chat_id, text=Reply('welcome'))
-
-    Send_new_problem(bot, chat_id, uid)
-
-
-def Receive_and_reply(bot, update):
-    rcv = update.callback_query
-    chat_id = rcv.message.chat_id
-    message_id = rcv.message.message_id
-    uid = str(chat_id)
-    om = option_mapping[uid]
-
-    if rcv.data == 'hint':
-        reply = entity[uid]['question'] + '\nHint:\n' + entity[uid]['hint']
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=reply,
-                              reply_markup=Reply_markup(have_hint=False))
+    if uid in entity:
+        # TODO: show previous status & emit restart
+        send_new_problem(chat_id)
     else:
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=entity[uid]['question'])
+        user = User(uid)
+        if not user.register():
+            reply = 'Cannot register you as a player, please contact admin'
+            bot.send_message(chat_id=chat_id, text=reply)
+            return
 
-        result = requests.post(url+'/answer', json={'user': uid, 'id': entity[uid]['id'], 'answer': om[int(rcv.data)]}).json()
-        bot.send_message(chat_id=chat_id, text=entity[uid]['option'][om[int(rcv.data)]])
-        bot.send_message(chat_id=chat_id, text=Judge(result))
-        if entity[uid]['id'] == 'finish': bot.send_message(chat_id=chat_id, text=Finish(uid))
-        Send_new_problem(bot, chat_id, uid)
+        entity[uid] = user
+        bot.send_message(chat_id=chat_id, text=ReplyMsg('welcome'))
+        send_new_problem(chat_id)
 
+# TODO: eliminate uid here (?)
+@run_async
+def callback_handler(update, context):
+    ans = update.callback_query.data
+    msg = update.callback_query.message
+    uid = str(msg.chat_id)
+    user = entity[uid]
 
-def Status(bot, update):
+    if ans == 'hint':
+        bot.edit_message_reply_markup(
+            chat_id=msg.chat_id,
+            message_id=msg.message_id,
+            reply_markup=ProbMarkup(hint=False)
+        )
+        reply = f'Hint: {entity[uid].prob.hint}'
+        bot.send_message(chat_id=msg.chat_id, text=reply)
+    else:
+        bot.edit_message_reply_markup(
+            chat_id=msg.chat_id,
+            message_id=msg.message_id
+        )
+        result = user.check_answer(ans)
+        bot.send_message(chat_id=msg.chat_id, text=JudgeMsg(result))
+        send_new_problem(msg.chat_id)
+
+@run_async
+def status_handler(update, context):
     chat_id = update.message.chat_id
     uid = str(chat_id)
 
-    stat = requests.get(url+'/user?user='+uid).json()
-    remainders = stat['questionStatus'].count(0)
-    reply = 'Score: ' + str(stat['point']) + '\nRank: ' + str(stat['order'])
-    if remainders > 0:
-        reply += '\nRemainders: ' + str(remainders)
+    if uid not in entity:
+        reply = 'Something went wrong, please try enter /start again'
+        bot.send_message(chat_id=chat_id, text=reply)
+        return
+
+    user = entity[uid]
+    stat = user.get_status()
+    remain = stat['remain']
+    reply = f"Score: {stat['point']}\nRank: {stat['order']}\n"
+    if remain > 0:
+        reply += f'Remain: {remain} problems'
     else:
-        reply += '\nGame Completed!'
+        reply += 'Game Completed!'
 
     bot.send_message(chat_id=chat_id, text=reply)
 
-
-def Leaderboard(bot, update):
-    reply = 'http://leaderboard.ccns.ncku.edu.tw'
+@run_async
+def leaderboard_handler(update, context):
+    reply = 'http://109-fall-leaderboard.ccns.io'
     bot.send_message(chat_id=update.message.chat_id, text=reply)
 
+@run_async
+def feedback_handler(update, context):
+    reply = '''Submit a new issue:
+https://github.com/ccns/quiz-chatbot-tg/issues
+or contact us:
+https://www.facebook.com/ncku.ccns'''
 
-def Feedback(bot, update):
-    reply = 'Submit a new issue:\nhttps://github.com/ccns/quiz-chatbot-tg/issues\nor contact us:\nhttps://www.facebook.com/ncku.ccns'
-    bot.send_message(chat_id=update.message.chat_id, text=reply, disable_web_page_preview=True)
+    bot.send_message(
+        chat_id=update.message.chat_id,
+        text=reply,
+        disable_web_page_preview=True
+    )
 
+def error_handler(update, context):
+    logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 def main():
-    global entity, option_mapping, url
-
-    entity = {}
-    option_mapping = {}
-
-    url = '<url>'
-    updater = Updater(token='<token>')
+    updater = Updater(token=TOKEN, use_context=True)
     dispatcher = updater.dispatcher
 
-    dispatcher.add_handler(CallbackQueryHandler(Receive_and_reply))
-    dispatcher.add_handler(CommandHandler('start', Start))
-    dispatcher.add_handler(CommandHandler('status', Status))
-    dispatcher.add_handler(CommandHandler('leaderboard', Leaderboard))
-    dispatcher.add_handler(CommandHandler('feedback', Feedback))
+    dispatcher.add_handler(CallbackQueryHandler(callback_handler))
+    dispatcher.add_handler(CommandHandler('start', start_handler))
+#    dispatcher.add_handler(CommandHandler('status', status_handler))
+    dispatcher.add_handler(CommandHandler('leaderboard', leaderboard_handler))
+    dispatcher.add_handler(CommandHandler('feedback', feedback_handler))
+    dispatcher.add_error_handler(error_handler)
 
     updater.start_polling()
     updater.idle()
-
 
 if __name__ == '__main__':
     main()
