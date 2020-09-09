@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 from telegram.ext.dispatcher import run_async
-from reply import ReplyMsg, JudgeMsg, ProbMarkup
-from botclass import User
+from bot.reply import ReplyMsg, JudgeMsg, ProbMarkup
+from bot.user import User
 import telegram
 import logging
 import configparser
@@ -45,7 +45,6 @@ def start_handler(update, context):
     })
 
     if uid in entity:
-        # TODO: show previous status & emit restart
         send_new_problem(chat_id)
     else:
         user = User(uid)
@@ -58,7 +57,6 @@ def start_handler(update, context):
         bot.send_message(chat_id=chat_id, text=ReplyMsg('welcome'))
         send_new_problem(chat_id)
 
-# TODO: eliminate uid here (?)
 @run_async
 def callback_handler(update, context):
     ans = update.callback_query.data

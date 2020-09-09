@@ -1,8 +1,23 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from random import randrange
+from pathlib import Path
+from . import HOST
+import requests
 import json
 
-message = json.load(open('./messages.json'))
+path = Path(__file__).parent / 'messages.json'
+message = json.load(path.open())
+res = requests.get(f'{HOST}/v1/provokes')
+if not res.ok:
+    res.raise_for_status()
+
+provokes = res.json()['data']
+
+for p in provokes:
+    if p['correct']:
+        message['correct'].append(p['message'])
+    else:
+        message['incorrect'].append(p['message'])
 
 def ReplyMsg(condition):
     return message[condition][randrange(len(message[condition]))]

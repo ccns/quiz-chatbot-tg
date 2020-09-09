@@ -1,15 +1,11 @@
 from dataclasses import dataclass
 from typing import List, TypedDict, Union
 from random import shuffle
-
+from . import HOST
 import configparser
 import requests
 import json
 import logging
-
-config = configparser.ConfigParser()
-config.read('.config')
-HOST = config['Bot']['Host']
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
