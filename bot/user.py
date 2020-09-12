@@ -1,8 +1,8 @@
 from dataclasses import dataclass
-from typing import List, TypedDict, Union
+from typing import List, Union
 from random import shuffle
+from .request_type import UserFeed, UserStatus, UserStatusData
 from . import HOST
-import configparser
 import requests
 import json
 import logging
@@ -34,34 +34,17 @@ class Problem:
 
         return quest
 
-class _UserFeedData(TypedDict):
-    _id: int
-    number: str
-    tags: List[str]
-    description: str
-    score: int
-    options: List[str]
-    hint: Union[str, None]
-    answer: str
-
-class _UserFeedStatus(TypedDict):
-    status_code: str
-    message: str
-
-class UserFeed(TypedDict):
-    status: _UserFeedStatus
-    data: Union[_UserFeedData, None]
-
 @dataclass
 class User:
     uid: str
+    nickname: str
     prob: Union[Problem, None] = None
     finished: bool = False
 
     def __post_init__(self):
         self.uid = 'telegram-' + self.uid
 
-    def get_problem(self):
+    def get_problem(self) -> Union[Problem, None]:
         res = None
 
         if not self.finished:
@@ -89,7 +72,7 @@ class User:
         )
         return self.prob
 
-    def check_answer(self, ans):
+    def check_answer(self, ans: str) -> bool:
         ans = chr(self.prob.ans_map[int(ans)] + ord('A'))
         correct = self.prob.answer == ans
 
@@ -106,12 +89,21 @@ class User:
 
         return correct
 
-    def get_status(self):
-        raise NotImplementedError
+    def get_status(self) -> UserStatusData:
+        res = requests.get(f'{HOST}/v1/players/{self.uid}')
+        logger.info(res.url)
+        if not res.ok:
+            res.raise_for_status()
 
-    def register(self):
+        stat: UserStatus = res.json()
+        
+        return stat['data']
+
+    def register(self) -> bool:
         payload = {
-            'name': self.uid
+            'name': self.uid,
+            'nickname': self.nickname,
+            'platform': 'telegram'
         }
         res = requests.post(f'{HOST}/v1/players', data=json.dumps(payload))
         logger.info(res.url)
