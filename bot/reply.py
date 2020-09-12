@@ -1,6 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from random import randrange
 from pathlib import Path
+from .request_type import ProvokeData
 from . import HOST
 import requests
 import json
@@ -11,13 +12,13 @@ res = requests.get(f'{HOST}/v1/provokes')
 if not res.ok:
     res.raise_for_status()
 
-provokes = res.json()['data']
+provokes = res.json()
 
-for p in provokes:
-    if p['correct']:
-        message['correct'].append(p['message'])
+for provoke in provokes['data']:
+    if provoke['correct']:
+        message['correct'].append(provoke['message'])
     else:
-        message['incorrect'].append(p['message'])
+        message['incorrect'].append(provoke['message'])
 
 def ReplyMsg(condition):
     return message[condition][randrange(len(message[condition]))]
