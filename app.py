@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
+import configparser
+import logging
 from typing import Dict
+
+import telegram
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 from telegram.ext.dispatcher import run_async
-from bot.reply import ReplyMsg, JudgeMsg, ProbMarkup
+from bot.reply import reply_msg, judge_msg, prob_markup
 from bot.user import User
-import telegram
-import logging
-import configparser
 
 config = configparser.ConfigParser()
 config.read('.config')
@@ -14,35 +15,41 @@ TOKEN = config['Bot']['Token']
 
 request = telegram.utils.request.Request(con_pool_size=20)
 bot = telegram.Bot(token=TOKEN, request=request)
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
-entity: Dict[str, User] = {}
+ENTITY: Dict[str, User] = {}
 
 def send_new_problem(chat_id):
-    global entity
-
+    global ENTITY
     uid = str(chat_id)
-    prob = entity[uid].get_problem()
+    prob = ENTITY[uid].get_problem()
 
     if prob:
         bot.send_message(
             chat_id=chat_id,
             text=prob.text(),
             parse_mode='HTML',
-            reply_markup=ProbMarkup(hint=prob.hint)
+            reply_markup=prob_markup(hint=prob.hint)
         )
     else:
-        bot.send_message(chat_id=chat_id, text=ReplyMsg('finish'))
-        bot.send_message(chat_id=chat_id, text='你已完成所有題目！\n若是想繼續練習可以輸入 /start 繼續作答(不計分)')
+        bot.send_message(chat_id=chat_id, text=reply_msg('finish'))
+        bot.send_message(
+            chat_id=chat_id,
+            text='你已完成所有題目！\n若是想繼續練習可以輸入 /start 繼續作答(不計分)'
+        )
 
 @run_async
-def start_handler(update, context):
-    global entity
+def start_handler(update, _):
+    global ENTITY
     chat_id = update.message.chat_id
     uid = str(chat_id)
     nickname = update.message.from_user.first_name
 
-    if uid in entity:
+    if uid in ENTITY:
         send_new_problem(chat_id)
     else:
         user = User(uid, nickname)
@@ -52,25 +59,25 @@ def start_handler(update, context):
             return
 
         logger.info(f'User {nickname}({uid}) registered')
-        entity[uid] = user
-        bot.send_message(chat_id=chat_id, text=ReplyMsg('welcome'))
+        ENTITY[uid] = user
+        bot.send_message(chat_id=chat_id, text=reply_msg('welcome'))
         send_new_problem(chat_id)
 
 @run_async
-def callback_handler(update, context):
-    global entity
+def callback_handler(update, _):
+    global ENTITY
     ans = update.callback_query.data
     msg = update.callback_query.message
     uid = str(msg.chat_id)
-    user = entity[uid]
+    user = ENTITY[uid]
 
     if ans == 'hint':
         bot.edit_message_reply_markup(
             chat_id=msg.chat_id,
             message_id=msg.message_id,
-            reply_markup=ProbMarkup(hint=False)
+            reply_markup=prob_markup(hint=False)
         )
-        reply = f'Hint: {entity[uid].prob.hint}'
+        reply = f'Hint: {ENTITY[uid].prob.hint}'
         bot.send_message(chat_id=msg.chat_id, text=reply)
     else:
         bot.edit_message_reply_markup(
@@ -78,21 +85,21 @@ def callback_handler(update, context):
             message_id=msg.message_id
         )
         result = user.check_answer(ans)
-        bot.send_message(chat_id=msg.chat_id, text=JudgeMsg(result))
+        bot.send_message(chat_id=msg.chat_id, text=judge_msg(result))
         send_new_problem(msg.chat_id)
 
 @run_async
-def status_handler(update, context):
-    global entity
+def status_handler(update, _):
+    global ENTITY
     chat_id = update.message.chat_id
     uid = str(chat_id)
 
-    if uid not in entity:
+    if uid not in ENTITY:
         reply = '出錯啦，嘗試重新輸入 /start 看看'
         bot.send_message(chat_id=chat_id, text=reply)
         return
 
-    user = entity[uid]
+    user = ENTITY[uid]
     stat = user.get_status()
     remain = stat['last']
     score = stat['score']
@@ -107,12 +114,12 @@ def status_handler(update, context):
     bot.send_message(chat_id=chat_id, text=reply)
 
 @run_async
-def leaderboard_handler(update, context):
+def leaderboard_handler(update, _):
     reply = 'https://leaderboard.ccns.io'
     bot.send_message(chat_id=update.message.chat_id, text=reply)
 
 @run_async
-def feedback_handler(update, context):
+def feedback_handler(update, _):
     reply = '''Submit a new issue:
 https://github.com/ccns/quiz-chatbot-tg/issues
 or contact us:

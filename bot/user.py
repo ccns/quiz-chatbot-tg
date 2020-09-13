@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Union
 from random import shuffle
+
 from .backend import backend
 
 @dataclass
@@ -22,8 +23,8 @@ class Problem:
         quest = f'<b>[{self.category}]</b>\n{self.question}\n'
 
         for i in range(len(self.options)):
-            op = chr(ord('A') + i)
-            quest += f'({op}) {self.options[self.ans_map[i]]}\n'
+            opchar = chr(ord('A') + i)
+            quest += f'({opchar}) {self.options[self.ans_map[i]]}\n'
 
         return quest
 
