@@ -1,14 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Union
 from random import shuffle
-from .request_type import UserFeed, UserStatus, UserStatusData
-from . import HOST
-import requests
-import json
-import logging
-
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
+from .backend import backend
 
 @dataclass
 class Problem:
@@ -45,21 +38,14 @@ class User:
         self.uid = 'telegram-' + self.uid
 
     def get_problem(self) -> Union[Problem, None]:
-        res = None
-
         if not self.finished:
-            res = requests.get(f'{HOST}/v1/players/{self.uid}/feed')
+            feed = backend.get_feed(self.uid)
         else:
-            res = requests.get(f'{HOST}/v1/players/{self.uid}/rand')
+            feed = backend.get_rand_feed(self.uid)
 
-        logger.info(res.url)
-        if not res.ok:
-            res.raise_for_status()
-
-        feed: UserFeed = res.json()
         data = feed['data']
-
         if not data:
+            self.finished = True
             return None
 
         self.prob = Problem(
@@ -82,21 +68,12 @@ class User:
                 'quiz_number': self.prob._id,
                 'correct': correct
             }
-            res = requests.post(f'{HOST}/v1/answers', data=json.dumps(payload))
-            logger.info(res.url)
-            if not res.ok:
-                res.raise_for_status()
+            backend.post_answer(payload)
 
         return correct
 
-    def get_status(self) -> UserStatusData:
-        res = requests.get(f'{HOST}/v1/players/{self.uid}')
-        logger.info(res.url)
-        if not res.ok:
-            res.raise_for_status()
-
-        stat: UserStatus = res.json()
-        
+    def get_status(self):
+        stat = backend.get_status(self.uid)
         return stat['data']
 
     def register(self) -> bool:
@@ -105,7 +82,5 @@ class User:
             'nickname': self.nickname,
             'platform': 'telegram'
         }
-        res = requests.post(f'{HOST}/v1/players', data=json.dumps(payload))
-        logger.info(res.url)
-
-        return res.ok or res.status_code == 409
+        success = backend.register(payload)
+        return success

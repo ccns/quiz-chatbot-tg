@@ -32,7 +32,6 @@ def send_new_problem(chat_id):
             reply_markup=ProbMarkup(hint=prob.hint)
         )
     else:
-        entity[uid].finished = True
         bot.send_message(chat_id=chat_id, text=ReplyMsg('finish'))
         bot.send_message(chat_id=chat_id, text='你已完成所有題目！\n若是想繼續練習可以輸入 /start 繼續作答(不計分)')
 

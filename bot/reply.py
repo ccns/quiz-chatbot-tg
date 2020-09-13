@@ -1,18 +1,12 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from random import randrange
 from pathlib import Path
-from .request_type import ProvokeData
-from . import HOST
-import requests
+from .backend import backend
 import json
 
 path = Path(__file__).parent / 'messages.json'
 message = json.load(path.open())
-res = requests.get(f'{HOST}/v1/provokes')
-if not res.ok:
-    res.raise_for_status()
-
-provokes = res.json()
+provokes = backend.get_provokes()
 
 for provoke in provokes['data']:
     if provoke['correct']:
