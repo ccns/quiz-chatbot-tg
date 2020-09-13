@@ -1,8 +1,9 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from random import randrange
-from pathlib import Path
-from .backend import backend
 import json
+from pathlib import Path
+from random import randrange
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from .backend import backend
 
 path = Path(__file__).parent / 'messages.json'
 message = json.load(path.open())
@@ -14,13 +15,13 @@ for provoke in provokes['data']:
     else:
         message['incorrect'].append(provoke['message'])
 
-def ReplyMsg(condition):
+def reply_msg(condition):
     return message[condition][randrange(len(message[condition]))]
 
-def JudgeMsg(correct):
-    return ReplyMsg('correct') if correct else ReplyMsg('incorrect')
+def judge_msg(correct):
+    return reply_msg('correct') if correct else reply_msg('incorrect')
 
-def ProbMarkup(hint):
+def prob_markup(hint):
     keyboard = [[InlineKeyboardButton('A', callback_data='0'),
                  InlineKeyboardButton('B', callback_data='1'),
                  InlineKeyboardButton('C', callback_data='2'),
