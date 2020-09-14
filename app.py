@@ -43,7 +43,7 @@ def start_handler(update, _):
     global ENTITY
     chat_id = update.message.chat_id
     uid = str(chat_id)
-    nickname = update.message.from_user.first_name
+    nickname = update.message.from_user.username
 
     if uid in ENTITY:
         send_new_problem(chat_id)
@@ -66,6 +66,9 @@ def callback_handler(update, _):
     msg = update.callback_query.message
     uid = str(msg.chat_id)
     user = ENTITY[uid]
+
+    if uid not in ENTITY:
+        return
 
     if ans == 'hint':
         bot.edit_message_reply_markup(
