@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Union
 from random import shuffle
 
-from .backend import backend
+from . import backend
 
 @dataclass
 class Problem:

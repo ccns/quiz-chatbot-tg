@@ -16,58 +16,56 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class Backend:
-    def get_status(self, uid: str) -> UserStatus:
-        res = requests.get(urljoin(HOST, f'v1/players/{uid}'))
 
-        logger.info(res.url)
-        if not res.ok:
-            res.raise_for_status()
+def get_status(uid: str) -> UserStatus:
+    res = requests.get(urljoin(HOST, f'v1/players/{uid}'))
 
-        return res.json()
+    logger.info(res.url)
+    if not res.ok:
+        res.raise_for_status()
 
-    def get_feed(self, uid: str) -> UserFeed:
-        res = requests.get(urljoin(HOST, f'v1/players/{uid}/feed'))
+    return res.json()
 
-        logger.info(res.url)
-        if not res.ok:
-            res.raise_for_status()
+def get_feed(uid: str) -> UserFeed:
+    res = requests.get(urljoin(HOST, f'v1/players/{uid}/feed'))
 
-        return res.json()
+    logger.info(res.url)
+    if not res.ok:
+        res.raise_for_status()
 
-    def get_rand_feed(self, uid: str) -> UserFeed:
-        res = requests.get(urljoin(HOST, f'v1/players/{uid}/rand'))
+    return res.json()
 
-        logger.info(res.url)
-        if not res.ok:
-            res.raise_for_status()
+def get_rand_feed(uid: str) -> UserFeed:
+    res = requests.get(urljoin(HOST, f'v1/players/{uid}/rand'))
 
-        return res.json()
+    logger.info(res.url)
+    if not res.ok:
+        res.raise_for_status()
 
-    def get_provokes(self) -> Provoke:
-        res = requests.get(urljoin(HOST, 'v1/provokes'))
+    return res.json()
 
-        logger.info(res.url)
-        if not res.ok:
-            res.raise_for_status()
+def get_provokes() -> Provoke:
+    res = requests.get(urljoin(HOST, 'v1/provokes'))
 
-        return res.json()
+    logger.info(res.url)
+    if not res.ok:
+        res.raise_for_status()
 
-    def post_answer(self, payload: Dict[str, Any]) -> None:
-        res = requests.post(urljoin(HOST, 'v1/answers'), json=payload)
+    return res.json()
 
-        logger.info(res.url)
-        if not res.ok:
-            res.raise_for_status()
+def post_answer(payload: Dict[str, Any]) -> None:
+    res = requests.post(urljoin(HOST, 'v1/answers'), json=payload)
 
-    def register(self, payload) -> bool:
-        res = requests.post(urljoin(HOST, '/v1/players'), json=payload)
-        logger.info(res.url)
+    logger.info(res.url)
+    if not res.ok:
+        res.raise_for_status()
 
-        if res.ok or res.status_code == 409:
-            return True
-        else:
-            res.raise_for_status()
-            return False
+def register(payload) -> bool:
+    res = requests.post(urljoin(HOST, '/v1/players'), json=payload)
+    logger.info(res.url)
 
-backend = Backend()
+    if res.ok or res.status_code == 409:
+        return True
+    else:
+        res.raise_for_status()
+        return False

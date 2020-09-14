@@ -3,7 +3,7 @@ from pathlib import Path
 from random import randrange
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from .backend import backend
+from . import backend
 
 path = Path(__file__).parent / 'messages.json'
 message = json.load(path.open())
