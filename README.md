@@ -6,7 +6,13 @@ Install dependencies by pipenv
 $ pipenv install
 ```
 
-Fill in telegram bot token & [quiz-server](https://github.com/ccns/quiz-server) host ip to `.config` then start the bot
+Fill in telegram bot token & [quiz-server](https://github.com/ccns/quiz-server) host ip to `.env`
+```
+$ cp .env.example .env
+$ vim .env
+```
+
+Start the bot
 ```
 $ pipenv run ./app.py
 ```

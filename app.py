@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import configparser
 import logging
 from typing import Dict
 
@@ -8,10 +7,7 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 from telegram.ext.dispatcher import run_async
 from bot.reply import reply_msg, judge_msg, prob_markup
 from bot.user import User
-
-config = configparser.ConfigParser()
-config.read('.config')
-TOKEN = config['Bot']['Token']
+from bot.config import TOKEN
 
 request = telegram.utils.request.Request(con_pool_size=20)
 bot = telegram.Bot(token=TOKEN, request=request)

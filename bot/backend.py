@@ -1,21 +1,16 @@
-import configparser
 import logging
 from urllib.parse import urljoin
 from typing import Any, Dict
 
 import requests
 from .request_type import UserFeed, UserStatus, Provoke
-
-config = configparser.ConfigParser()
-config.read('.config')
-HOST = config['Bot']['Host']
+from .config import HOST
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
 
 def get_status(uid: str) -> UserStatus:
     res = requests.get(urljoin(HOST, f'v1/players/{uid}'))
