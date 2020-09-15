@@ -59,8 +59,7 @@ def register(payload) -> bool:
     res = requests.post(urljoin(HOST, '/v1/players'), json=payload)
     logger.info(res.url)
 
-    if res.ok or res.status_code == 409:
-        return True
-    else:
+    if not (res.ok or res.status_code == 409):
         res.raise_for_status()
-        return False
+
+    return True

@@ -11,9 +11,9 @@ provokes = backend.get_provokes()
 
 for provoke in provokes['data']:
     if provoke['correct']:
-        message['correct'].append(provoke['message'])
+        message['correct'].append('👍' + provoke['message'])
     else:
-        message['incorrect'].append(provoke['message'])
+        message['incorrect'].append('👎' + provoke['message'])
 
 def reply_msg(condition):
     return message[condition][randrange(len(message[condition]))]
@@ -21,12 +21,13 @@ def reply_msg(condition):
 def judge_msg(correct):
     return reply_msg('correct') if correct else reply_msg('incorrect')
 
-def prob_markup(hint):
-    keyboard = [[InlineKeyboardButton('A', callback_data='0'),
-                 InlineKeyboardButton('B', callback_data='1'),
-                 InlineKeyboardButton('C', callback_data='2'),
-                 InlineKeyboardButton('D', callback_data='3')]]
+def prob_markup(prob_id, hint=False):
+    keyboard = [[InlineKeyboardButton('A', callback_data=f'0 {prob_id}'),
+                 InlineKeyboardButton('B', callback_data=f'1 {prob_id}'),
+                 InlineKeyboardButton('C', callback_data=f'2 {prob_id}'),
+                 InlineKeyboardButton('D', callback_data=f'3 {prob_id}')]]
     if hint:
-        keyboard.append([InlineKeyboardButton('Hint', callback_data='hint')])
+        keyboard.append([
+            InlineKeyboardButton('Hint', callback_data=f'hint {prob_id}')])
 
     return InlineKeyboardMarkup(keyboard)

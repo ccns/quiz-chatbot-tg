@@ -29,7 +29,7 @@ def send_new_problem(chat_id):
             chat_id=chat_id,
             text=prob.text(),
             parse_mode='HTML',
-            reply_markup=prob_markup(hint=prob.hint)
+            reply_markup=prob_markup(prob._id, prob.hint)
         )
     else:
         bot.send_message(chat_id=chat_id, text=reply_msg('finish'))
@@ -62,19 +62,25 @@ def start_handler(update, _):
 @run_async
 def callback_handler(update, _):
     global ENTITY
-    ans = update.callback_query.data
+    ans, prob_id = update.callback_query.data.split(' ')
     msg = update.callback_query.message
     uid = str(msg.chat_id)
-    user = ENTITY[uid]
 
     if uid not in ENTITY:
+        return
+
+    user = ENTITY[uid]
+
+    # prevent user from answering old problems
+    if int(prob_id) != user.prob._id:
+        update.callback_query.answer()
         return
 
     if ans == 'hint':
         bot.edit_message_reply_markup(
             chat_id=msg.chat_id,
             message_id=msg.message_id,
-            reply_markup=prob_markup(hint=False)
+            reply_markup=prob_markup(prob_id)
         )
         reply = f'Hint: {ENTITY[uid].prob.hint}'
         bot.send_message(chat_id=msg.chat_id, text=reply)
@@ -126,10 +132,10 @@ https://www.facebook.com/ncku.ccns'''
 
     bot.send_message(
         chat_id=update.message.chat_id,
-        text=reply,
-        disable_web_page_preview=True
+        text=reply
     )
 
+@run_async
 def error_handler(update, context):
     logger.error('Update "%s" caused error "%s"', update, context.error)
 

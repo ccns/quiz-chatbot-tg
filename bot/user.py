@@ -20,7 +20,7 @@ class Problem:
             shuffle(self.ans_map)
 
     def text(self):
-        quest = f'<b>[{self.category}]</b>\n{self.question}\n'
+        quest = f'<b>[{self.category}]</b>\n{self.question.ljust(25, " ")}\n'
 
         for i in range(len(self.options)):
             opchar = chr(ord('A') + i)
