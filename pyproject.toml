@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "quiz-chatbot-tg"
+version = "0.1.0"
+description = ""
+authors = ["HexRabbit <h3xrabbit@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = "^2.25.1"
+python-telegram-bot = "^13.2"
+python-dotenv = "^0.15.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
