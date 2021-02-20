@@ -47,7 +47,7 @@ def start_handler(update, _):
     if uid in ENTITY:
         send_new_problem(chat_id)
     else:
-        user = User(nickname)
+        user = User(nickname, uid)
         if not user.register():
             reply = '無法建立帳號，請於粉專或 discord 私訊小編！'
             bot.send_message(chat_id=chat_id, text=reply)

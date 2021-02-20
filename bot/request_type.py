@@ -8,6 +8,7 @@ class AnswerReq(TypedDict):
 class RegisterReq(TypedDict):
     name: str
     platform: str
+    platform_userid: str
 
 class UserFeed(TypedDict):
     quiz_uuid: str
@@ -20,8 +21,8 @@ class UserFeed(TypedDict):
 
 class UserStatus(TypedDict):
     player_uuid: str
+    platform_userid: str
     name: str
-    nickname: str
     platform: str
     correct_count: int
     incorrect_count: int

@@ -68,3 +68,12 @@ def register(payload: RegisterReq) -> Union[UserStatus, None]:
         return
 
     return res.json()
+
+def search(userid: str) -> Union[UserStatus, None]:
+    res = requests.get(urljoin(HOST, f'/mappings/{userid}/'))
+    logger.info(res.url)
+
+    if not res.ok:
+        return
+
+    return res.json()

@@ -25,6 +25,7 @@ class Problem:
 @dataclass
 class User:
     username: str
+    userid: str
     uuid: str = ''
     prob: Union[Problem, None] = None
     finished: bool = False
@@ -63,12 +64,18 @@ class User:
     def register(self) -> bool:
         payload: RegisterReq = {
             'name': self.username,
-            'platform': 'telegram'
+            'platform': 'telegram',
+            'platform_userid': self.userid
         }
 
-        res = backend.register(payload)
-        if not res:
-            return False
+        res = backend.search(self.userid)
+        if res:
+            self.uuid = res['player_uuid']
+            return True
 
-        self.uuid = res['player_uuid']
-        return True
+        res = backend.register(payload)
+        if res:
+            self.uuid = res['player_uuid']
+            return True
+
+        return False
