@@ -1,7 +1,7 @@
 # CCNS Quiz Bot - Telegram Client
 
 ## Usage
-Install dependencies by pipenv
+Install dependencies by poetry
 ```
 $ poetry install
 ```
