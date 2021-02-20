@@ -1,9 +1,9 @@
 import logging
-from urllib.parse import urljoin
-from typing import Any, Dict
-
 import requests
-from .request_type import UserFeed, UserStatus, Provoke
+from urllib.parse import urljoin
+from typing import Any, Dict, Union
+from http import HTTPStatus
+from .request_type import AnswerReq, RegisterReq, UserFeed, UserStatus, Provoke, Answer
 from .config import HOST
 
 logging.basicConfig(
@@ -12,8 +12,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def get_status(uid: str) -> UserStatus:
-    res = requests.get(urljoin(HOST, f'v1/players/{uid}'))
+def get_status(uuid: str) -> UserStatus:
+    res = requests.get(urljoin(HOST, f'/players/{uuid}/'))
 
     logger.info(res.url)
     if not res.ok:
@@ -21,8 +21,20 @@ def get_status(uid: str) -> UserStatus:
 
     return res.json()
 
-def get_feed(uid: str) -> UserFeed:
-    res = requests.get(urljoin(HOST, f'v1/players/{uid}/feed'))
+def get_feed(uuid: str) -> Union[UserFeed, None]:
+    res = requests.get(urljoin(HOST, f'/feeds/{uuid}'))
+
+    logger.info(res.url)
+    if not res.ok:
+        res.raise_for_status()
+
+    if res.status_code == HTTPStatus.NO_CONTENT:
+        return None
+    else:
+        return res.json()
+
+def get_rand_feed() -> UserFeed:
+    res = requests.get(urljoin(HOST, f'/rand/'))
 
     logger.info(res.url)
     if not res.ok:
@@ -30,8 +42,8 @@ def get_feed(uid: str) -> UserFeed:
 
     return res.json()
 
-def get_rand_feed(uid: str) -> UserFeed:
-    res = requests.get(urljoin(HOST, f'v1/players/{uid}/rand'))
+def get_provokes() -> list[Provoke]:
+    res = requests.get(urljoin(HOST, '/provokes/'))
 
     logger.info(res.url)
     if not res.ok:
@@ -39,8 +51,8 @@ def get_rand_feed(uid: str) -> UserFeed:
 
     return res.json()
 
-def get_provokes() -> Provoke:
-    res = requests.get(urljoin(HOST, 'v1/provokes'))
+def post_answer(payload: AnswerReq) -> Answer:
+    res = requests.post(urljoin(HOST, '/answers/'), json=payload)
 
     logger.info(res.url)
     if not res.ok:
@@ -48,18 +60,11 @@ def get_provokes() -> Provoke:
 
     return res.json()
 
-def post_answer(payload: Dict[str, Any]) -> None:
-    res = requests.post(urljoin(HOST, 'v1/answers'), json=payload)
-
-    logger.info(res.url)
-    if not res.ok:
-        res.raise_for_status()
-
-def register(payload) -> bool:
-    res = requests.post(urljoin(HOST, '/v1/players'), json=payload)
+def register(payload: RegisterReq) -> Union[UserStatus, None]:
+    res = requests.post(urljoin(HOST, '/players/'), json=payload)
     logger.info(res.url)
 
-    if not (res.ok or res.status_code == 409):
-        res.raise_for_status()
+    if not (res.ok or res.status_code == HTTPStatus.CONFLICT):
+        return
 
-    return True
+    return res.json()

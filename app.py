@@ -29,7 +29,7 @@ def send_new_problem(chat_id):
             chat_id=chat_id,
             text=prob.text(),
             parse_mode='HTML',
-            reply_markup=prob_markup(prob._id, prob.hint)
+            reply_markup=prob_markup(prob.quiz_uuid, hint=prob.hint)
         )
     else:
         bot.send_message(chat_id=chat_id, text=reply_msg('finish'))
@@ -38,7 +38,6 @@ def send_new_problem(chat_id):
             text='你已完成所有題目！\n若是想繼續練習可以輸入 /start 繼續作答(不計分)'
         )
 
-@run_async
 def start_handler(update, _):
     global ENTITY
     chat_id = update.message.chat_id
@@ -48,7 +47,7 @@ def start_handler(update, _):
     if uid in ENTITY:
         send_new_problem(chat_id)
     else:
-        user = User(uid, nickname)
+        user = User(nickname)
         if not user.register():
             reply = '無法建立帳號，請於粉專或 discord 私訊小編！'
             bot.send_message(chat_id=chat_id, text=reply)
@@ -59,10 +58,9 @@ def start_handler(update, _):
         bot.send_message(chat_id=chat_id, text=reply_msg('welcome'))
         send_new_problem(chat_id)
 
-@run_async
 def callback_handler(update, _):
     global ENTITY
-    ans, prob_id = update.callback_query.data.split(' ')
+    ans, quiz_uuid = update.callback_query.data.split(' ')
     msg = update.callback_query.message
     uid = str(msg.chat_id)
 
@@ -71,16 +69,16 @@ def callback_handler(update, _):
 
     user = ENTITY[uid]
 
-    # prevent user from answering old problems
-    if int(prob_id) != user.prob._id:
+    # ignore any intend to answer old problems
+    if quiz_uuid != user.prob.quiz_uuid:
         update.callback_query.answer()
         return
 
-    if ans == 'hint':
+    if ans == '__HINT__':
         bot.edit_message_reply_markup(
             chat_id=msg.chat_id,
             message_id=msg.message_id,
-            reply_markup=prob_markup(prob_id)
+            reply_markup=prob_markup(quiz_uuid)
         )
         reply = f'Hint: {ENTITY[uid].prob.hint}'
         bot.send_message(chat_id=msg.chat_id, text=reply)
@@ -93,7 +91,6 @@ def callback_handler(update, _):
         bot.send_message(chat_id=msg.chat_id, text=judge_msg(result))
         send_new_problem(msg.chat_id)
 
-@run_async
 def status_handler(update, _):
     global ENTITY
     chat_id = update.message.chat_id
@@ -106,7 +103,7 @@ def status_handler(update, _):
 
     user = ENTITY[uid]
     stat = user.get_status()
-    remain = stat['last']
+    remain = stat['no_answer_count']
     score = stat['score']
     rank = stat['rank']
     reply = f"得分: {score}\n排名: 第 {rank} 名\n"
@@ -118,12 +115,10 @@ def status_handler(update, _):
 
     bot.send_message(chat_id=chat_id, text=reply)
 
-@run_async
 def leaderboard_handler(update, _):
     reply = 'https://leaderboard.ccns.io'
     bot.send_message(chat_id=update.message.chat_id, text=reply)
 
-@run_async
 def feedback_handler(update, _):
     reply = '''Submit a new issue:
 https://github.com/ccns/quiz-chatbot-tg/issues
@@ -135,7 +130,6 @@ https://www.facebook.com/ncku.ccns'''
         text=reply
     )
 
-@run_async
 def error_handler(update, context):
     logger.error('Update "%s" caused error "%s"', update, context.error)
 
@@ -143,11 +137,11 @@ def main():
     updater = Updater(token=TOKEN, use_context=True)
     dispatcher = updater.dispatcher
 
-    dispatcher.add_handler(CallbackQueryHandler(callback_handler))
-    dispatcher.add_handler(CommandHandler('start', start_handler))
-    dispatcher.add_handler(CommandHandler('status', status_handler))
-    dispatcher.add_handler(CommandHandler('leaderboard', leaderboard_handler))
-    dispatcher.add_handler(CommandHandler('feedback', feedback_handler))
+    dispatcher.add_handler(CallbackQueryHandler(callback_handler, run_async=True))
+    dispatcher.add_handler(CommandHandler('start', start_handler, run_async=True))
+    dispatcher.add_handler(CommandHandler('status', status_handler, run_async=True))
+    dispatcher.add_handler(CommandHandler('leaderboard', leaderboard_handler, run_async=True))
+    dispatcher.add_handler(CommandHandler('feedback', feedback_handler, run_async=True))
     dispatcher.add_error_handler(error_handler)
 
     updater.start_polling()

@@ -1,34 +1,37 @@
-from typing import List, TypedDict, Union
+from typing import TypedDict, Union
 
-class UserFeedData(TypedDict):
-    _id: int
-    number: str
-    tags: List[str]
-    description: str
-    score: int
-    options: List[str]
-    hint: Union[str, None]
+class AnswerReq(TypedDict):
+    player_uuid: str
+    quiz_uuid: str
     answer: str
 
-class UserFeed(TypedDict):
-    data: Union[UserFeedData, None]
+class RegisterReq(TypedDict):
+    name: str
+    platform: str
 
-class UserStatusData(TypedDict):
-    _id: int
+class UserFeed(TypedDict):
+    quiz_uuid: str
+    author: str
+    domain: str
+    description: str
+    level: str
+    score: int
+    options: list[str]
+
+class UserStatus(TypedDict):
+    player_uuid: str
     name: str
     nickname: str
     platform: str
-    rank: int
+    correct_count: int
+    incorrect_count: int
+    no_answer_count: int
     score: int
-    last: int
+    rank: int
 
-class UserStatus(TypedDict):
-    data: UserStatusData
-
-class ProvokeData(TypedDict):
-    _id: int
+class Provoke(TypedDict):
     correct: bool
     message: str
 
-class Provoke(TypedDict):
-    data: List[ProvokeData]
+class Answer(TypedDict):
+    correct: bool
