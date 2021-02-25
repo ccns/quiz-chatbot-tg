@@ -27,7 +27,6 @@ class UserStatus(TypedDict):
     correct_count: int
     incorrect_count: int
     no_answer_count: int
-    score: int
     rank: int
 
 class Provoke(TypedDict):

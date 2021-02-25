@@ -104,7 +104,7 @@ def status_handler(update, _):
     user = ENTITY[uid]
     stat = user.get_status()
     remain = stat['no_answer_count']
-    score = stat['score']
+    score = stat['correct_count']
     rank = stat['rank']
     reply = f"得分: {score}\n排名: 第 {rank} 名\n"
 
